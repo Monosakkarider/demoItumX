@@ -4,8 +4,8 @@ from io import StringIO
 from tkinter import *
 from datetime import date
 
-time_today = date.today().strftime("%Y-%m-%d")
-url = f"https://data.norges-bank.no/api/data/EXR/B.USD+GBP+RUB+EUR.NOK.SP?format=csv&startPeriod={time_today}&endPeriod={time_today}&locale=no"
+#time_today = date.today().strftime("%Y-%m-%d")
+url = f"https://data.norges-bank.no/api/data/EXR/B.USD+GBP+RUB+EUR.NOK.SP?format=csv&startPeriod=2025-01-24&endPeriod=2025-01-24&locale=no"
 
 #Get request til Api'et
 response = requests.get(url)
