@@ -1,63 +1,86 @@
-import tkinter as tk
-from tkinter import messagebox
 import requests
 import pandas as pd
 from io import StringIO
+from tkinter import *
 from datetime import date
 
-# Function to fetch data from the web
-def fetch_exchange_data():
-    try:
-        # Replace this URL with your actual data source
-        time_today = date.today().strftime("%Y-%m-%d")
-        url = f'https://data.norges-bank.no/api/data/EXR/B.USD.NOK.SP?format=csv&startPeriod={time_today}&endPeriod={time_today}&locale=no'  # Example CSV URL
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = pd.read_csv(StringIO(response.text), delimiter=';')
-            return data.iloc[0]
-        else:
-            messagebox.showerror("Error", f"Failed to fetch data: {response.status_code}")
-            return None
-    except Exception as e:
-        messagebox.showerror("Error", f"An error occurred: {e}")
-        return None
+def get_norges_bank_api(dato_to_ret):
+    if dato_to_ret is not None:
+        next
+    else: 
+        dato_to_ret = date.today().strftime("%Y-%m-%d")
+      
+    response = requests.get(f"https://data.norges-bank.no/api/data/EXR/B.USD+GBP+RUB+EUR.NOK.SP?format=csv&startPeriod={dato_to_ret}&endPeriod={dato_to_ret}&locale=no")
+                
+    if response.status_code == 200:
+        return pd.read_csv(StringIO(response.text), delimiter=';')        
+    else:
+        print(f"Failed to retrieve data {dato_to_ret}:", response.status_code)
 
-# Function to perform the calculation
-def calculate():
-    try:
-        amount = float(amount_entry.get().strip())
-        rate = float(exchange_data['OBS_VALUE'].replace(',', '.'))
-        result = amount * rate
-        result_label.config(text=f"Converted Amount: {result:.2f} NOK @ {exchange_data['TIME_PERIOD']}")
-    except ValueError:
-        messagebox.showerror("Error", "Please enter a valid number for the amount.")
-    except Exception as e:
-        messagebox.showerror("Error", f"An unexpected error occurred: {e}")
+def main():
+    global df
+    text_widget_answer.delete("1.0", END)
+    
+    filtered_df=df[(df["Basisvaluta"]==ent_options.get())].iloc[0]
+    valutakurs=float(filtered_df["OBS_VALUE"].replace(",","."))
+    
+    nok=ent1.get()
+    usd=ent2.get()
+    
+    if nok:
+        result=f"{nok} {filtered_df['QUOTE_CUR']} blir til {round((nok / valutakurs),2)} i {filtered_df['BASE_CUR']}."
+    elif usd:
+        result=f"{usd} {filtered_df['BASE_CUR']} blir til {round((usd * valutakurs),2)} i {filtered_df['QUOTE_CUR']}"
+    else:
+        result=("Ugyldig verdi!")  
+      
+    text_widget_answer.insert("1.0", result + "\n\n", "black")
+    text_widget_answer.insert("3.0", f"Data fra Norgesbank API: \n", "black")
+    text_widget_answer.insert("end", "- " +filtered_df['TIME_PERIOD'], "black")
+    
+    ent1.set(0)
+    ent2.set(0)
+    
+df = get_norges_bank_api("2025-01-23")
 
-# GUI setup
-root = tk.Tk()
-root.title("Currency Exchange Calculator")
+# TK INTER STUFF
+myWindow = Tk()
+myWindow.title("Valutakalkulator")
+myWindow.geometry("350x220")
 
-# Fetch exchange data at the start
-exchange_data = fetch_exchange_data()
-if exchange_data is None:
-    exit()  # Exit the program if data cannot be loaded
+# Add Button
+btn = Button(myWindow, text="Beregn", command=main)
+btn.grid(row=3, column=1, padx=5, pady=10, sticky=E)
 
-# Labels and entries
-tk.Label(root, text="FRA USD:").grid(row=0, column=0, pady=5, padx=5)
-tk.Label(root, text="TIL NOK:").grid(row=1, column=0, pady=5, padx=5)
+# Add Kvoteringsvaluta Label
+kvoteringsvaluta = StringVar()
+kvoteringsvaluta.set(str(df["Kvoteringsvaluta"].iloc[0]))
+lbl_1 = Label(myWindow, textvariable=kvoteringsvaluta)
+lbl_1.grid(row=0, column=0, padx=5, pady=5, sticky=W)
 
-tk.Label(root, text="mengde:").grid(row=2, column=0, pady=5, padx=5)
-amount_entry = tk.Entry(root)
-amount_entry.grid(row=2, column=1, pady=5, padx=5)
+# Add Entry 1
+ent1 = DoubleVar(value=0)
+ent_1 = Entry(myWindow, width=10, textvariable=ent1)
+ent_1.grid(row=0, column=1, padx=5, pady=5, sticky=E)
 
-# Button to calculate
-calculate_button = tk.Button(root, text="Calculate", command=calculate)
-calculate_button.grid(row=3, column=0, columnspan=2, pady=10)
+# Add Dropdown Menu
+ent_options = StringVar(value=df["Basisvaluta"][0])
+options = df["Basisvaluta"].tolist()
+dropdown = OptionMenu(myWindow, ent_options, *options)
+dropdown.grid(row=1, column=0, padx=5, pady=10, sticky=W)
 
-# Result label
-result_label = tk.Label(root, text="Converted Amount: ", fg="blue")
-result_label.grid(row=4, column=0, columnspan=2, pady=10)
+# Add Entry 2
+ent2 = DoubleVar(value=0)
+ent_2 = Entry(myWindow, width=10, textvariable=ent2)
+ent_2.grid(row=1, column=1, padx=5, pady=5, sticky=E)
 
-# Start the Tkinter event loop
-root.mainloop()
+# Add Text Widget
+text_widget_answer = Text(myWindow, width=40, height=5, wrap="word")
+text_widget_answer.grid(row=4, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
+
+# Configure grid rows and columns for resizing
+myWindow.grid_rowconfigure(4, weight=1)  # Make row 4 expandable vertically
+myWindow.grid_columnconfigure(0, weight=1)  # Make column 0 expandable horizontally
+myWindow.grid_columnconfigure(1, weight=1)  # Make column 1 expandable horizontally
+
+myWindow.mainloop()
