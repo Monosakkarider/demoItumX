@@ -17,7 +17,7 @@ def get_norges_bank_api(date_to_retreive):
     else:
         print(f"Failed to retrieve data {date_to_retreive}:", response.status_code)
     
-df = get_norges_bank_api("2025-01-23")
+df = get_norges_bank_api("2026-10-08")
 
 def main():
     global df
